@@ -3,6 +3,7 @@ package finance_backend.service.impl;
 import finance_backend.dao.UserDao;
 import finance_backend.pojo.entity.UserEntity;
 import finance_backend.pojo.exception.BizException;
+import finance_backend.pojo.vo.registerVO;
 import finance_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,18 +16,13 @@ public class UserServiceImpl implements UserService {
     private final Long base = 100000L;
     private Long momentCounter = 0L;
 
-    /**
-     * 用户注册
-     * @param username 用户名
-     * @param password 密码
-     */
     @Override
-    public UserEntity register(String username, String password) {
+    public UserEntity register(registerVO registerVO) {
         long uid_long = userDao.findAll().size() + base;
         String uid = Long.toString(uid_long);
 
-        UserEntity userEntity = UserEntity.builder().username(username).password(password)
-                .uid(uid).build();
+        UserEntity userEntity = UserEntity.builder().username(registerVO.getUsername()).password(registerVO.getPassword())
+                .uid(uid).role(registerVO.getRole()).department(registerVO.getDepartment()).majorName(registerVO.getMajorName()).build();
         userDao.save(userEntity);
         return userEntity;
     }

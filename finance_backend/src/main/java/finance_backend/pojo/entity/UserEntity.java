@@ -33,4 +33,14 @@ public class UserEntity {
 
     private String gender;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private Role role; // STUDENT or TEACHER
+
+    @Enumerated(EnumType.STRING)
+    private Department department;
+
+    @Enumerated(EnumType.STRING)
+    private MajorName majorName;
+
 }

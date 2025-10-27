@@ -7,7 +7,7 @@ import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Data
-@Schema(description = "获取好友请求的请求")
+@Schema(description = "根据uid查找账号")
 public class FindByUidRequest {
     @Schema(description = "账号", required = true)
     @NotNull

@@ -1,5 +1,10 @@
 package finance_backend.pojo.request.userRequest;
 
+import finance_backend.pojo.entity.Department;
+import finance_backend.pojo.entity.MajorName;
+import finance_backend.pojo.entity.Role;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -23,4 +28,14 @@ public class RegisterRequest {
             @Pattern(regexp = "^[\\x21-\\x7e]*$", message = "密码只能包含字母,数字和符号"),
     })
     private String password;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private Role role; // STUDENT or TEACHER
+
+    @Enumerated(EnumType.STRING)
+    private Department department;
+
+    @Enumerated(EnumType.STRING)
+    private MajorName majorName;
 }

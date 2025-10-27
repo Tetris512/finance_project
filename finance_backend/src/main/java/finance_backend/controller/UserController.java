@@ -4,6 +4,7 @@ import finance_backend.pojo.entity.UserEntity;
 import finance_backend.pojo.exception.CommonResponse;
 import finance_backend.pojo.request.userRequest.LoginRequest;
 import finance_backend.pojo.request.userRequest.RegisterRequest;
+import finance_backend.pojo.vo.registerVO;
 import finance_backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,8 @@ public class UserController {
         }
         else
         {
-            UserEntity userEntity = userService.register(request.getUsername(), request.getPassword());
+            registerVO registerVO = new registerVO(request);
+            UserEntity userEntity = userService.register(registerVO);
             CommonResponse<String> commonResponse = CommonResponse.success(userEntity.getUid());
             commonResponse.setCode(200);
             commonResponse.setMessage("注册成功");
