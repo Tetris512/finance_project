@@ -1,133 +1,117 @@
 package finance_backend.Utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import finance_backend.pojo.request.difyRequest.DifyChatRequest;
-import finance_backend.pojo.request.difyRequest.DifyFile;
+import okhttp3.*;
+import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+@Service
 public class DifyRequestHandler {
 
-    // 发送HTTP请求并返回响应,type为请求类型(GET/POST)。
-    // 当为POST时, 可通过body参数传入JSON字符串; body可为null表示无请求体。
-    public static String sendRequest(String urlString, String apiKey, String type, String body) throws IOException {
-        // 创建 URL 对象
-        URL url = new URL(urlString);
+    private final OkHttpClient client;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-        // 创建连接对象
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-        // 设置连接和读取超时
-        connection.setConnectTimeout(25000); // 设置连接超时时间为15秒
-        connection.setReadTimeout(120000);  // 设置读取超时时间为120秒
-
-        // 设置请求方法 (GET/POST等)
-        connection.setRequestMethod(type);
-
-        // 设置 Authorization Header
-        if (apiKey != null && !apiKey.isEmpty()) {
-            connection.setRequestProperty("Authorization", "Bearer " + apiKey);
-        }
-
-        // 如果有请求体, 则设置Content-Type并写入请求体
-        if (body != null && !body.isEmpty()) {
-            connection.setDoOutput(true);
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            try (OutputStream os = connection.getOutputStream();
-                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"))) {
-                writer.write(body);
-                writer.flush();
-            }
-        }
-
-        // 读取响应码
-        int responseCode = connection.getResponseCode();
-
-        InputStream stream = null;
-        if (responseCode >= 200 && responseCode < 300) {
-            stream = connection.getInputStream();
-        } else {
-            // 读取错误流以便返回更有用的错误信息
-            stream = connection.getErrorStream();
-            if (stream == null) {
-                throw new IOException("Request failed with response code " + responseCode);
-            }
-        }
-
-        // 读取响应内容
-        StringBuilder finalAnswer = new StringBuilder();
-        ObjectMapper objectMapper = new ObjectMapper();
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(stream, "UTF-8"))) {
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                if (inputLine.startsWith("data:")) {
-                    String jsonData = inputLine.substring(5).trim();
-                    try {
-                        HashMap<String, Object> eventData = objectMapper.readValue(jsonData, HashMap.class);
-                        if ("workflow_finished".equals(eventData.get("event"))) {
-                            if (eventData.get("data") instanceof HashMap) {
-                                HashMap<String, Object> dataMap = (HashMap<String, Object>) eventData.get("data");
-                                if (dataMap.get("outputs") instanceof HashMap) {
-                                    HashMap<String, Object> outputsMap = (HashMap<String, Object>) dataMap.get("outputs");
-                                    if (outputsMap.containsKey("answer")) {
-                                        finalAnswer.append(outputsMap.get("answer"));
-                                        break; // 找到最终答案，退出循环
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        // 忽略无法解析的行或非预期的JSON结构
-                    }
-                }
-            }
-        }
-
-        // 返回响应内容
-        if (responseCode >= 200 && responseCode < 300) {
-            if (finalAnswer.length() > 0) {
-                return finalAnswer.toString();
-            } else {
-                throw new IOException("Could not find final answer in the stream.");
-            }
-        } else {
-            throw new IOException("Request failed with response code " + responseCode);
-        }
+    public DifyRequestHandler() {
+        this.client = new OkHttpClient.Builder()
+                .protocols(java.util.Arrays.asList(Protocol.HTTP_1_1))
+                .connectTimeout(5, TimeUnit.MINUTES)
+                .readTimeout(5, TimeUnit.MINUTES)
+                .writeTimeout(5, TimeUnit.MINUTES)
+                .callTimeout(5, TimeUnit.MINUTES)
+                .build();
     }
 
-    public static void main(String[] args) {
-        try {
-            // 1. Create the request body object
-            HashMap<String, Object> inputs = new HashMap<>();
+    public String sendRequest(String urlString, String apiKey, String type, String body) throws IOException {
+        System.out.println("\n--- Preparing to send Dify request ---");
+        System.out.println("URL: " + urlString);
+        System.out.println("Request Body: " + body);
 
-            DifyChatRequest requestBody = new DifyChatRequest(
-                    inputs,
-                    "奖学金申请流程",
-                    "streaming", // 改回 streaming 模式
-                    "",
-                    "abc-123",
-                    null
-            );
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(urlString)
+                .addHeader("Authorization", "Bearer " + apiKey)
+                .addHeader("User-Agent", "PostmanRuntime/7.49.1")
+                .addHeader("Accept", "text/event-stream")
+                .addHeader("Accept-Encoding", "gzip, deflate")
+                .addHeader("Connection", "keep-alive");
 
-            // 2. Convert the object to a JSON string
-            ObjectMapper objectMapper = new ObjectMapper();
-            String jsonBody = objectMapper.writeValueAsString(requestBody);
+        RequestBody requestBody = RequestBody.create(body, MediaType.get("application/json; charset=utf-8"));
+        requestBuilder.post(requestBody);
 
-            // 3. Send the request and get the final answer
-            String apiKey = CommonValue.apiKey; // Replace with your actual API key
-            String url = "https://dify.seec.seecoder.cn/v1/chat-messages";
-            String finalAnswer = sendRequest(url, apiKey, "POST", jsonBody);
+        Request request = requestBuilder.build();
 
-            // 4. 打印最终结果
-            System.out.println("解析后的回答: " + finalAnswer);
+        System.out.println("Headers:");
+        request.headers().toMultimap().forEach((key, value) -> System.out.println("  " + key + ": " + value));
+        System.out.println("--- End of request details ---\n");
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                ResponseBody errBody = response.body();
+                String err = errBody != null ? errBody.string() : "";
+                throw new IOException("Request failed with response code " + response.code() + ". Error: " + err);
+            }
+
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) return "";
+
+            String contentType = response.header("Content-Type", "");
+            if (contentType != null && contentType.contains("text/event-stream")) {
+                StringBuilder finalAnswer = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(responseBody.charStream())) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        String raw = line.trim();
+                        if (raw.isEmpty()) continue;
+
+                        // Ignore explicit event type lines like: event: ping
+                        if (raw.startsWith("event:")) continue;
+
+                        // Handle frames starting with data:
+                        String payload = raw.startsWith("data:") ? raw.substring(5).trim() : raw;
+
+                        // Try to parse JSON; skip if not JSON
+                        Map<String, Object> eventData;
+                        try {
+                            eventData = objectMapper.readValue(payload, Map.class);
+                        } catch (Exception ignore) {
+                            continue;
+                        }
+
+                        // Extract text from common places
+                        // 1) top-level "answer"
+                        Object topAnswer = eventData.get("answer");
+                        if (topAnswer instanceof String) {
+                            finalAnswer.append((String) topAnswer);
+                        }
+                        // 2) data.outputs.answer or data.outputs.text
+                        Object dataObj = eventData.get("data");
+                        if (dataObj instanceof Map) {
+                            Object outputs = ((Map<?, ?>) dataObj).get("outputs");
+                            if (outputs instanceof Map) {
+                                Object ans = ((Map<?, ?>) outputs).get("answer");
+                                if (ans instanceof String) finalAnswer.append((String) ans);
+                                Object text = ((Map<?, ?>) outputs).get("text");
+                                if (text instanceof String) finalAnswer.append((String) text);
+                            }
+                        }
+
+                        // Stop at message_end
+                        Object evt = eventData.get("event");
+                        if (evt != null && "message_end".equals(evt.toString())) {
+                            break;
+                        }
+                    }
+                }
+                return finalAnswer.toString();
+            } else {
+                // Non-SSE path
+                try (ResponseBody rb = responseBody) {
+                    return rb.string();
+                }
+            }
         }
     }
 }

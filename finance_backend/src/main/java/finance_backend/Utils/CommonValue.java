@@ -12,4 +12,6 @@ public class CommonValue {
     public final static String RESPONSE_MODE_STREAM = "streaming";
 
     public final static String RESPONSE_MODE_BLOCK = "blocking";
+
+    public final static String BASE_DIFY_URL = "https://dify.seec.seecoder.cn/v1";
 }

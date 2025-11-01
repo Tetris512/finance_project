@@ -3,6 +3,7 @@ package finance_backend.controller;
 import finance_backend.pojo.entity.UserEntity;
 import finance_backend.pojo.exception.CommonResponse;
 import finance_backend.pojo.request.difyRequest.DifyChatRequest;
+import finance_backend.pojo.response.difyResponse.DifyChatResponse;
 import finance_backend.pojo.vo.RequestData;
 import finance_backend.service.DifyService;
 import jakarta.validation.Valid;
@@ -20,10 +21,11 @@ public class DifyController {
     public CommonResponse<?> chat(@Valid @RequestBody DifyChatRequest request) {
         // Throws BizException if auth failed.
         RequestData requestData = new RequestData(request);
-        if(userEntity == null) {
+        DifyChatResponse difyChatResponse = difyService.chatMessage(requestData);
+        if(difyChatResponse == null) {
             return CommonResponse.failure(400);
         } else{
-            CommonResponse<UserEntity> commonResponse = CommonResponse.success(userEntity);
+            CommonResponse<?> commonResponse = CommonResponse.success(difyChatResponse);
             commonResponse.setCode(200);
             return commonResponse;
         }
