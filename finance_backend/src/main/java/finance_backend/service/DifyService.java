@@ -1,10 +1,9 @@
 package finance_backend.service;
 
-import finance_backend.pojo.request.difyRequest.DifyChatRequest;
 import finance_backend.pojo.response.difyResponse.DifyChatResponse;
-import finance_backend.pojo.vo.RequestData;
+import finance_backend.pojo.vo.DifyChatVO;
 
 public interface DifyService {
-    DifyChatResponse chatMessage(RequestData requestData);
+    DifyChatResponse chatMessage(DifyChatVO requestData);
 
 }

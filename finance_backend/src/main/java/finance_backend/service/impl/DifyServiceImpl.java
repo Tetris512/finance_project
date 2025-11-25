@@ -1,15 +1,20 @@
 package finance_backend.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import finance_backend.Utils.CommonValue;
 import finance_backend.Utils.DifyRequestHandler;
-import finance_backend.pojo.request.difyRequest.DifyChatRequest;
 import finance_backend.pojo.response.difyResponse.DifyChatResponse;
-import finance_backend.pojo.vo.RequestData;
+import finance_backend.pojo.vo.DifyChatVO;
 import finance_backend.service.DifyService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import okhttp3.Response;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 @Service
 @RequiredArgsConstructor
@@ -18,7 +23,7 @@ public class DifyServiceImpl implements DifyService {
     private final DifyRequestHandler difyRequestHandler;
 
     @Override
-    public DifyChatResponse chatMessage(RequestData request) {
+    public DifyChatResponse chatMessage(DifyChatVO request) {
         try {
             // Build JSON body to match Postman payload exactly
             ObjectMapper objectMapper = new ObjectMapper();
@@ -32,7 +37,6 @@ public class DifyServiceImpl implements DifyService {
             } else {
                 root.set("inputs", objectMapper.valueToTree(request.getInputs()));
             }
-            // files: if null -> "", else keep list
             if (request.getFiles() == null || request.getFiles().isEmpty()) {
                 root.put("files", "");
             } else {
@@ -46,15 +50,9 @@ public class DifyServiceImpl implements DifyService {
 
             String url = CommonValue.BASE_DIFY_URL + "/chat-messages";
             System.out.println("Final JSON body: " + jsonBody);
-            String response = difyRequestHandler.sendRequest(url, CommonValue.apiKey, CommonValue.REQUEST_POST, jsonBody);
+            Response clientResponse = difyRequestHandler.sendRequest(url, CommonValue.apiKey, CommonValue.REQUEST_POST, jsonBody);
 
-            if (response == null || response.trim().isEmpty()) {
-                return null;
-            }
-
-            DifyChatResponse difyChatResponse = new DifyChatResponse();
-            difyChatResponse.setAnswer(response);
-            return difyChatResponse;
+            return difyRequestHandler.handleChatResponse(clientResponse);
 
         } catch (Exception e) {
             e.printStackTrace();
