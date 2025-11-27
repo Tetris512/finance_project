@@ -87,13 +87,11 @@ Provides access to past conversation history.
   [
     {
       "id": "conv-id-1",
-      "title": "Conversation Title 1",
-      "lastUpdated": "2023-10-27T10:00:00Z"
+      "title": "Conversation Title 1"
     },
     {
       "id": "conv-id-2",
-      "title": "Conversation Title 2",
-      "lastUpdated": "2023-10-27T11:30:00Z"
+      "title": "Conversation Title 2"
     }
   ]
   ```
@@ -116,8 +114,15 @@ Provides access to past conversation history.
 - **Body**: An array of message objects, structured for direct display in the chat interface.
   ```json
   [
-    { "id": "msg-id-1", "query": "Hello", "answer": "user" },
-    { "id": "msg-id-2", "query": "Hi, how can I help you?", "answer": "bot" },
-    { "id": "msg-id-3", "query": "What is the policy?", "answer": "user" }
+    { 
+      "id": "msg-id-1", 
+      "query": "Hello", 
+      "answer": "Hi, how can I help you?" 
+    },
+    { 
+      "id": "msg-id-2", 
+      "query": "What is the policy?", 
+      "answer": "The policy is detailed in the document XYZ..." 
+    }
   ]
   ```
