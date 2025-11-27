@@ -12,13 +12,13 @@ import java.util.Map;
 @Schema(description = "获取历史聊天记录请求")
 public class DifyGetHistoryRequest {
 
-    @JsonProperty("conversation_id")
+    @JsonProperty("conversationId")
     private String conversationId;
 
     @NotNull
     private String user;
 
-    @JsonProperty("first_id")
+    @JsonProperty("firstId")
     private String firstId;
 
     private String limit;

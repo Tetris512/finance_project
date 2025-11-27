@@ -34,4 +34,8 @@ public class DifyChatVO {
         this.user = request.getUser();
         this.files = request.getFiles() != null ? request.getFiles() : java.util.Collections.emptyList();
     }
+
+    public DifyChatVO() {
+
+    }
 }

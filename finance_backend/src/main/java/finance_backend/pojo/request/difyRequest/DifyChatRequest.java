@@ -16,10 +16,10 @@ public class DifyChatRequest {
     @NotNull
     private String query;
 
-    @JsonProperty("response_mode")
+    @JsonProperty("responseMode")
     private String responseMode;
 
-    @JsonProperty("conversation_id")
+    @JsonProperty("conversationId")
     private String conversationId;
 
     @NotNull
