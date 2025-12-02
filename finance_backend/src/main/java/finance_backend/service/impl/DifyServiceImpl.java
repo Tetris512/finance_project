@@ -16,18 +16,21 @@ import finance_backend.service.DifyService;
 import finance_backend.pojo.vo.Conversation;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.java.Log;
 import okhttp3.*;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,7 @@ public class DifyServiceImpl implements DifyService {
 
     // 复用一个 ObjectMapper 实例
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private final WebClient difyWebClient;
 
     public DifyChatResponse chatBlocked (DifyChatVO request) {
         try {
@@ -135,7 +139,7 @@ public class DifyServiceImpl implements DifyService {
             }
 
             InputStream inputStream = upstream.body().byteStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             PrintWriter writer = response.getWriter();
 
             String line;
@@ -342,6 +346,77 @@ public class DifyServiceImpl implements DifyService {
         } catch (IOException e) {
             e.printStackTrace();
             return List.of();
+        }
+    }
+
+    // 新增：基于 WebFlux 的非阻塞 SSE 转发方法
+    public Flux<ServerSentEvent<String>> chatStreamReactive(DifyChatVO vo) {
+        try {
+            String jsonBody = buildStreamingJsonBody(vo);
+
+            // Use WebClient to perform non-blocking request and stream processing
+            return difyWebClient.post()
+                    .uri("/chat-messages")
+                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .accept(org.springframework.http.MediaType.TEXT_EVENT_STREAM)
+                    .bodyValue(jsonBody)
+                    .exchangeToFlux((ClientResponse clientResponse) -> {
+                        if (!clientResponse.statusCode().is2xxSuccessful()) {
+                            String payload = "{\"event\":\"error\",\"message\":\"Upstream error: " + clientResponse.statusCode().value() + "\"}";
+                            return Flux.just(ServerSentEvent.<String>builder().event("error").data(payload).build());
+                        }
+                        // Extract body as stream of String (raw SSE chunks)
+                        return clientResponse.bodyToFlux(String.class)
+                                .publishOn(Schedulers.boundedElastic())
+                                .flatMap(raw -> {
+                                    // raw may contain fragments; split by SSE event boundary 'data:' / 'event:' lines
+                                    // Simplified approach: handle when raw contains JSON object (data payload)
+                                    try {
+                                        String text = raw.trim();
+                                        if (text.isEmpty()) return Flux.empty();
+                                        // Attempt to parse as JSON; if parseable -> process
+                                        JsonNode node;
+                                        try {
+                                            node = MAPPER.readTree(text);
+                                        } catch (Exception ex) {
+                                            // Not a JSON payload; try to extract data: prefix
+                                            String maybe = text;
+                                            if (maybe.startsWith("data:")) {
+                                                maybe = maybe.substring("data:".length()).trim();
+                                            }
+                                            try {
+                                                node = MAPPER.readTree(maybe);
+                                            } catch (Exception ex2) {
+                                                return Flux.empty();
+                                            }
+                                        }
+
+                                        String eventName = null;
+                                        if (node.hasNonNull("event")) eventName = node.get("event").asText(null);
+                                        if (eventName == null) eventName = "message"; // default fallback
+
+                                        if (!isWhitelisted(eventName)) return Flux.empty();
+
+                                        String trimmed = trimDataPayload(node.toString());
+                                        String payload = trimmed.isEmpty() ? "{}" : trimmed;
+                                        ServerSentEvent<String> sse = ServerSentEvent.<String>builder()
+                                                .event(eventName)
+                                                .data(payload)
+                                                .build();
+                                        return Flux.just(sse);
+                                    } catch (Exception e) {
+                                        return Flux.just(ServerSentEvent.<String>builder()
+                                                .event("error")
+                                                .data("{\"event\":\"error\",\"message\":\"" + e.getMessage() + "\"}")
+                                                .build());
+                                    }
+                                });
+                    });
+        } catch (Exception e) {
+            return Flux.just(ServerSentEvent.<String>builder()
+                    .event("error")
+                    .data("{\"event\":\"error\",\"message\":\"build body error: " + e.getMessage() + "\"}")
+                    .build());
         }
     }
 }

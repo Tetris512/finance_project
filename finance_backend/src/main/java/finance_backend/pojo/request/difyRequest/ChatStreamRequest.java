@@ -28,25 +28,5 @@ public class ChatStreamRequest {
     @JsonProperty("conversationId")
     private String conversationId;
 
-    /**
-     * 历史对话列表
-     */
-    @NotEmpty
-    private List<HistoryItem> history;
-
-    @Data
-    public static class HistoryItem {
-        /**
-         * 消息发送者角色，"user" 或 "assistant"
-         */
-        @NotBlank
-        private String role;
-
-        /**
-         * 消息内容
-         */
-        @NotBlank
-        private String content;
-    }
 }
 

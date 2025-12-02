@@ -6,6 +6,8 @@ import finance_backend.pojo.vo.DifyChatVO;
 import finance_backend.pojo.vo.DifyFeedbackVO;
 import finance_backend.pojo.vo.MessageItem;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.codec.ServerSentEvent;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -31,4 +33,6 @@ public interface DifyService {
 
     // 新增：获取某个会话的消息列表（按你的 UI 结构）
     List<MessageItem> getConversationMessages(String user, String conversationId);
+
+    Flux<ServerSentEvent<String>> chatStreamReactive(DifyChatVO vo);
 }

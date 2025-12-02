@@ -13,7 +13,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
 import java.util.List;
@@ -43,19 +45,12 @@ public class DifyController {
     }
 
     /**
-     * /api/chat：从 DifyService 获得原始 SSE 文本流，只转发特定几种事件：
-     * message / message_end / error / ping / message_replace，其它事件类型直接丢弃。
+     * 基于 WebFlux 的非阻塞 /api/chat：直接返回 Flux<ServerSentEvent<String>>
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public void chatStream(@Valid @RequestBody ChatStreamRequest request,
-                           HttpServletResponse servletResponse) throws IOException {
+    public Flux<ServerSentEvent<String>> chatStream(@Valid @RequestBody ChatStreamRequest request) {
         // 拼接 history + 当前 prompt 为最终 query
         StringBuilder sb = new StringBuilder();
-        if (request.getHistory() != null) {
-            request.getHistory().forEach(h -> {
-                sb.append(h.getRole()).append(": ").append(h.getContent()).append("\n");
-            });
-        }
         sb.append("user: ").append(request.getPrompt());
 
         DifyChatVO vo = new DifyChatVO();
@@ -65,9 +60,7 @@ public class DifyController {
         vo.setFiles(null);
         vo.setConversationId(request.getConversationId());
 
-        // 直接由 service 完成：向 Dify 发起请求，读取上游 SSE，解析并只把允许的事件写回 servletResponse
-        // 允许的事件：message, message_end, error, ping, message_replace
-        difyService.chatStream(vo, servletResponse);
+        return difyService.chatStreamReactive(vo);
     }
 
     /**
@@ -102,7 +95,9 @@ public class DifyController {
         return CommonResponse.success(conversations);
     }
 
-    // 3.2 Get a Specific Conversation: /api/history/conversations/{conversationId}?user=xxx
+    /**
+     * 查询指定conversationId的消息列表
+     */
     @GetMapping("/history/conversations/{conversationId}")
     public CommonResponse<?> getConversationMessages(@PathVariable("conversationId") String conversationId,
                                                      @RequestParam("user") String user) {
