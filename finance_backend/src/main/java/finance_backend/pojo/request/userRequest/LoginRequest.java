@@ -13,10 +13,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "登录请求")
 public class LoginRequest {
 
-    @Schema(description = "账号", required = true)
+    @Schema(description = "用户名", required = true)
     @NotNull
-    @Pattern(regexp = "^[0-9]*$", message = "账号只能包含数字")
-    private String uid;
+    @Size(min = 4, max = 16, message = "用户名长度必须在 4-16 之间")
+    @Pattern(regexp = "^[A-Za-z\\d-_]*$", message = "用户名只能包含字母,数字,下划线和连字符")
+    private String username;
 
 
     @Schema(description = "密码", required = true)

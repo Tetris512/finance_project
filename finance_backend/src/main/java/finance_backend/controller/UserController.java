@@ -1,6 +1,7 @@
 package finance_backend.controller;
 
 import finance_backend.pojo.entity.UserEntity;
+import finance_backend.pojo.exception.BizException;
 import finance_backend.pojo.exception.CommonResponse;
 import finance_backend.pojo.request.userRequest.LoginRequest;
 import finance_backend.pojo.request.userRequest.RegisterRequest;
@@ -24,13 +25,16 @@ public class UserController {
     @PostMapping("login")
     public CommonResponse<?> login(@Valid @RequestBody LoginRequest request) {
         // Throws BizException if auth failed.
-        userService.login(request.getUid(), request.getPassword());
-        UserEntity userEntity = userService.findByUid(request.getUid());
-        if(userEntity == null) {
-            return CommonResponse.failure(400);
-        } else{
+        try {
+            UserEntity userEntity = userService.login(request.getUsername(), request.getPassword());
+            userEntity.setPassword(null); // 不返回密码
             CommonResponse<UserEntity> commonResponse = CommonResponse.success(userEntity);
             commonResponse.setCode(200);
+            commonResponse.setMessage("登录成功");
+            return commonResponse;
+        } catch (BizException e) {
+            CommonResponse<String> commonResponse = CommonResponse.failure(400);
+            commonResponse.setMessage(e.getMessage());
             return commonResponse;
         }
     }
@@ -50,12 +54,18 @@ public class UserController {
         }
         else
         {
-            registerVO registerVO = new registerVO(request);
-            UserEntity userEntity = userService.register(registerVO);
-            CommonResponse<String> commonResponse = CommonResponse.success(userEntity.getUid());
-            commonResponse.setCode(200);
-            commonResponse.setMessage("注册成功");
-            return commonResponse;
+            try {
+                registerVO registerVO = new registerVO(request);
+                UserEntity userEntity = userService.register(registerVO);
+                CommonResponse<String> commonResponse = CommonResponse.success(userEntity.getUsername());
+                commonResponse.setCode(200);
+                commonResponse.setMessage("注册成功");
+                return commonResponse;
+            } catch (BizException e) {
+                CommonResponse<String> commonResponse = CommonResponse.failure(400);
+                commonResponse.setMessage(e.getMessage());
+                return commonResponse;
+            }
         }
     }
 

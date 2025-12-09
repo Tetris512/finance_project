@@ -25,9 +25,7 @@ public class UserEntity {
     private String username;
     @NotNull
     private String password;
-    @NotNull
-    @Column(unique = true)
-    private String uid;
+
     //TODO: 暂时用不着
     private String avatar;
 

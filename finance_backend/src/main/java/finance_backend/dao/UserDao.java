@@ -4,6 +4,6 @@ import finance_backend.pojo.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserDao extends JpaRepository<UserEntity, Long> {
-    UserEntity findByUid(String uid);
+    UserEntity findByUsername(String username);
 
 }

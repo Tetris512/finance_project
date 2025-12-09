@@ -5,10 +5,8 @@ import finance_backend.pojo.entity.UserEntity;
 import finance_backend.pojo.vo.registerVO;
 
 public interface UserService {
-    void login(String uid, String password);
+    UserEntity login(String username, String password);
 
     UserEntity register(registerVO registerVO);
-
-    UserEntity findByUid(String uid);
 
 }
