@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import finance_backend.pojo.vo.Conversation;
 import finance_backend.pojo.vo.MessageItem;
+import finance_backend.pojo.vo.FeedbackConversation;
+import finance_backend.pojo.vo.FeedbackSimple;
 
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 @RestController
@@ -103,5 +105,28 @@ public class DifyController {
                                                      @RequestParam("user") String user) {
         List<MessageItem> messages = difyService.getConversationMessages(user, conversationId);
         return CommonResponse.success(messages);
+    }
+
+    @GetMapping("/history/conversations/{conversationId}/{messageId}")
+    public CommonResponse<?> getConversationMessage(@PathVariable("conversationId") String conversationId,
+                                                    @PathVariable("messageId") String messageId,
+                                                    @RequestParam("user") String user) {
+        MessageItem message = difyService.getConversationMessage(user, conversationId, messageId);
+        if (message == null) {
+            return CommonResponse.failure(404);
+        }
+        return CommonResponse.success(message);
+    }
+
+    @GetMapping("/getFeedback")
+    public CommonResponse<?> getFeedback() {
+        List<FeedbackConversation> feedbackList = difyService.getFeedbackWithConversations();
+        return CommonResponse.success(feedbackList);
+    }
+
+    @GetMapping("/getFeedbackSimple")
+    public CommonResponse<?> getFeedbackSimple() {
+        List<FeedbackSimple> feedbackList = difyService.getFeedbackSimple();
+        return CommonResponse.success(feedbackList);
     }
 }

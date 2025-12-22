@@ -4,6 +4,8 @@ import finance_backend.pojo.vo.Conversation;
 import finance_backend.pojo.response.difyResponse.DifyChatResponse;
 import finance_backend.pojo.vo.DifyChatVO;
 import finance_backend.pojo.vo.DifyFeedbackVO;
+import finance_backend.pojo.vo.FeedbackConversation;
+import finance_backend.pojo.vo.FeedbackSimple;
 import finance_backend.pojo.vo.MessageItem;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.codec.ServerSentEvent;
@@ -33,6 +35,12 @@ public interface DifyService {
 
     // 新增：获取某个会话的消息列表（按你的 UI 结构）
     List<MessageItem> getConversationMessages(String user, String conversationId);
+
+    MessageItem getConversationMessage(String user, String conversationId, String messageId);
+
+    List<FeedbackConversation> getFeedbackWithConversations();
+
+    List<FeedbackSimple> getFeedbackSimple();
 
     Flux<ServerSentEvent<String>> chatStreamReactive(DifyChatVO vo);
 }

@@ -9,11 +9,8 @@ import finance_backend.Utils.DifyRequestHandler;
 import finance_backend.dao.FeedbackDao;
 import finance_backend.pojo.entity.FeedbackEntity;
 import finance_backend.pojo.response.difyResponse.DifyChatResponse;
-import finance_backend.pojo.vo.DifyChatVO;
-import finance_backend.pojo.vo.DifyFeedbackVO;
-import finance_backend.pojo.vo.MessageItem;
+import finance_backend.pojo.vo.*;
 import finance_backend.service.DifyService;
-import finance_backend.pojo.vo.Conversation;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import okhttp3.*;
@@ -347,6 +344,50 @@ public class DifyServiceImpl implements DifyService {
             e.printStackTrace();
             return List.of();
         }
+    }
+
+    @Override
+    public MessageItem getConversationMessage(String user, String conversationId, String messageId) {
+        return getConversationMessages(user, conversationId).stream()
+                .filter(msg -> messageId.equals(msg.getId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
+    public List<FeedbackConversation> getFeedbackWithConversations() {
+        return feedbackDao.findAll().stream()
+                .map(feedback -> {
+                    MessageItem message = getConversationMessage(
+                            feedback.getUser(),
+                            feedback.getConversationId(),
+                            feedback.getMessageId()
+                    );
+                    return FeedbackConversation.builder()
+                            .feedback(feedback)
+                            .message(message)
+                            .build();
+                })
+                .toList();
+    }
+
+    @Override
+    public List<FeedbackSimple> getFeedbackSimple() {
+        return feedbackDao.findAll().stream()
+                .map(feedback -> {
+                    MessageItem message = getConversationMessage(
+                            feedback.getUser(),
+                            feedback.getConversationId(),
+                            feedback.getMessageId()
+                    );
+                    return FeedbackSimple.builder()
+                            .user(feedback.getUser())
+                            .feedbackText(feedback.getFeedbackText())
+                            .query(message != null ? message.getQuery() : null)
+                            .answer(message != null ? message.getAnswer() : null)
+                            .build();
+                })
+                .toList();
     }
 
     // 新增：基于 WebFlux 的非阻塞 SSE 转发方法
