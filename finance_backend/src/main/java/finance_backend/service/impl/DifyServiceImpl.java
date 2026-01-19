@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 @Service
 @RequiredArgsConstructor
 public class DifyServiceImpl implements DifyService {
+    private static final String USERNAME_PREFIX = "dify_";
 
     private final DifyRequestHandler difyRequestHandler;
     private final FeedbackDao feedbackDao;
@@ -42,7 +43,6 @@ public class DifyServiceImpl implements DifyService {
 
     public DifyChatResponse chatBlocked (DifyChatVO request) {
         try {
-            // Build JSON body to match Postman payload exactly
             ObjectMapper objectMapper = new ObjectMapper();
             com.fasterxml.jackson.databind.node.ObjectNode root = objectMapper.createObjectNode();
             root.put("query", request.getQuery());

@@ -9,4 +9,6 @@ public interface UserService {
 
     UserEntity register(registerVO registerVO);
 
+    boolean exists(String username);
+
 }

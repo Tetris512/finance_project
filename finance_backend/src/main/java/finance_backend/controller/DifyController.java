@@ -1,5 +1,7 @@
 package finance_backend.controller;
 
+import finance_backend.pojo.exception.BizError;
+import finance_backend.pojo.exception.BizException;
 import finance_backend.pojo.exception.CommonResponse;
 import finance_backend.pojo.request.difyRequest.ChatStreamRequest;
 import finance_backend.pojo.request.difyRequest.DifyChatRequest;
@@ -9,6 +11,7 @@ import finance_backend.pojo.response.difyResponse.DifyChatResponse;
 import finance_backend.pojo.vo.DifyChatVO;
 import finance_backend.pojo.vo.DifyFeedbackVO;
 import finance_backend.service.DifyService;
+import finance_backend.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,10 +34,19 @@ import finance_backend.pojo.vo.FeedbackSimple;
 @RequiredArgsConstructor
 public class DifyController {
     private final DifyService difyService;
+    private final UserService userService;
+
+    private void ensureUserExists(String username) {
+        if (username == null || !userService.exists(username)) {
+            throw new BizException(BizError.USER_NOT_FOUND);
+        }
+    }
 
     @PostMapping("/chatBlocked")
     public CommonResponse<?> chat(@Valid @RequestBody DifyChatRequest request) {
+        ensureUserExists(request.getUser());
         // Throws BizException if auth failed.
+
         DifyChatVO difyChatVO = new DifyChatVO(request);
         DifyChatResponse difyChatResponse = difyService.chatBlocked(difyChatVO);
         if (difyChatResponse == null) {
@@ -51,6 +63,7 @@ public class DifyController {
      */
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatStream(@Valid @RequestBody ChatStreamRequest request) {
+        ensureUserExists(request.getUser());
         // 拼接 history + 当前 prompt 为最终 query
         StringBuilder sb = new StringBuilder();
         sb.append("user: ").append(request.getPrompt());
@@ -71,6 +84,7 @@ public class DifyController {
      */
     @PostMapping("/feedback")
     public CommonResponse<?> feedback(@Valid @RequestBody FeedbackRequest request) {
+        ensureUserExists(request.getUser());
         // 这里先简单打印日志，后续你可以接入数据库或日志系统
         System.out.println("[FEEDBACK] rating=" + request.getRating());
         System.out.println("[FEEDBACK] conversation_id=" + request.getConversationId());
@@ -90,6 +104,7 @@ public class DifyController {
 
     @GetMapping("/history/conversations" )
     public CommonResponse<?> getConversations(@RequestParam String user) {
+        ensureUserExists(user);
         List<Conversation> conversations = difyService.getConversations(user);
         if (conversations == null) {
             return CommonResponse.failure(404);
@@ -103,6 +118,7 @@ public class DifyController {
     @GetMapping("/history/conversations/{conversationId}")
     public CommonResponse<?> getConversationMessages(@PathVariable("conversationId") String conversationId,
                                                      @RequestParam("user") String user) {
+        ensureUserExists(user);
         List<MessageItem> messages = difyService.getConversationMessages(user, conversationId);
         return CommonResponse.success(messages);
     }
@@ -111,6 +127,7 @@ public class DifyController {
     public CommonResponse<?> getConversationMessage(@PathVariable("conversationId") String conversationId,
                                                     @PathVariable("messageId") String messageId,
                                                     @RequestParam("user") String user) {
+        ensureUserExists(user);
         MessageItem message = difyService.getConversationMessage(user, conversationId, messageId);
         if (message == null) {
             return CommonResponse.failure(404);
